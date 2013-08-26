@@ -48,6 +48,7 @@
     "grunt-banner": "~0.1.4",
     "grunt-bower-task": "~0.2.3",
     "grunt-coffeelint": "0.0.6",
+    "grunt-concurrent": "~0.3.1",
     "grunt-contrib-clean": "~0.4.1",
     "grunt-contrib-compress": "~0.5.2",
     "grunt-contrib-concat": "~0.3.0",
@@ -58,14 +59,14 @@
     "grunt-contrib-uglify": "~0.2.2",
     "grunt-contrib-watch": "~0.4.4",
     "grunt-mocha": "git://github.com/kmiyashiro/grunt-mocha.git",
+    "grunt-open": "~0.2.2",
     "grunt-saucelabs": "git://github.com/feltnerm/grunt-saucelabs.git",
     "grunt-version": "~0.2.2",
+    "mocha-sauce": "git://github.com/feltnerm/mocha-sauce#9d6445f0bc99f9ec3acdd52410cf2e277c26b3bb",
     "request": "~2.21.0",
     "semver": "2.0.x",
-    "wd": "git://github.com/admc/wd.git",
-    "grunt-concurrent": "~0.3.1",
     "time-grunt": "~0.1.1",
-    "grunt-open": "~0.2.2"
+    "wd": "git://github.com/admc/wd.git"
   },
   "dependencies": {},
   "license": "GPLv3"
