@@ -23,7 +23,8 @@ test/*.js
 test/upload/*
 test/uploadsTemp/
 test/coverage/*
-test/vendor/*
+test/_vendor
+test/_temp
 test/uploads/*
 test/temp*
 node_modules/

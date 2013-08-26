@@ -5,6 +5,8 @@
 # the 'wrapper' function
 module.exports = (grunt) ->
 
+    require('time-grunt')(grunt)
+
     # Utilities
     # ==========
     path = require 'path'
@@ -22,6 +24,10 @@ module.exports = (grunt) ->
         'src': './client'
         'docs': './docs'
         'test': './test'
+
+    # Browsers
+    # ==========
+    browsers = require "#{paths.test}/browsers.json"
 
     # Modules
     # ==========
@@ -110,33 +116,22 @@ module.exports = (grunt) ->
         "README.md"
     ]
 
-    browsers = require "#{paths.test}/browsers.json"
 
     # Configuration
     # ==========
     grunt.initConfig
 
-        # Package
-        # --------
         pkg: pkg
-        extra: extra
-        paths: paths
 
-
-        # Modules
-        # ----------
-        # works
         bower:
             install:
                 options:
-                    targetDir: "#{paths.test}/vendor"
+                    targetDir: "#{paths.test}/_vendor"
                     install: true
                     cleanTargetDir: true
                     cleanBowerDir: true
                     layout: 'byComponent'
 
-        # Clean
-        # --------
         clean:
             build:
                 files:
@@ -146,53 +141,63 @@ module.exports = (grunt) ->
                     src: paths.dist
             test:
                 files:
-                    src: ["#{paths.test}/temp*", "#{paths.test}/coverage"]
+                    src: ["#{paths.test}/_temp*"]
             vendor:
                 files:
-                    src: "#{paths.test}/vendor/*"
+                    src: "#{paths.test}/_vendor"
 
-        # Banner
-        # ----------
-        usebanner:
-            header:
-                src: ["#{paths.build}/*.{js,css}"]
+        coffeelint:
+            options:
+                indentation:
+                    level: 'ignore'
+                no_trailing_whitespace:
+                    level: 'ignore'
+                max_line_length:
+                    level: 'ignore'
+            grunt: './Gruntfile.coffee'
+
+        compress:
+            jquery:
+                 options:
+                     archive: "#{paths.dist}/jquery.<%= pkg.name %>-<%= pkg.version %>.zip"
+                 files: [
+                     {
+                         expand: true
+                         cwd: paths.dist
+                         src: './jquery.<%= pkg.name %>-<%= pkg.version %>/*'
+                     }
+                 ]
+             jqueryS3:
+                  options:
+                      archive: "#{paths.dist}/s3.jquery.<%= pkg.name %>-<%= pkg.version %>.zip"
+                  files: [
+                      {
+                          expand: true
+                          cwd: paths.dist
+                          src: './s3.jquery.<%= pkg.name %>-<%= pkg.version %>/*'
+                      }
+                  ]
+            core:
                 options:
-                    position: 'top'
-                    banner: '''
-                            /*!
-                             * <%= pkg.title %>
-                             *
-                             * Copyright 2013, <%= pkg.author %> info@fineuploader.com
-                             *
-                             * Version: <%= pkg.version %>
-                             *
-                             * Homepage: http://fineuploader.com
-                             *
-                             * Repository: <%= pkg.repository.url %>
-                             *
-                             * Licensed under GNU GPL v3, see LICENSE
-                             */ \n\n'''
-            footer:
-                src: ["#{paths.build}/*.{js,css}"]
+                    archive: "#{paths.dist}/<%= pkg.name %>-<%= pkg.version %>.zip"
+                files: [
+                    {
+                        expand: true
+                        cwd: paths.dist
+                        src: './<%= pkg.name %>-<%= pkg.version %>/*'
+                    }
+                ]
+            coreS3:
                 options:
-                    position: 'bottom'
-                    banner: '/*! <%= grunt.template.today("yyyy-mm-dd") %> */\n'
+                    archive: "#{paths.dist}/s3.<%= pkg.name %>-<%= pkg.version %>.zip"
+                files: [
+                    {
+                        expand: true
+                        cwd: paths.dist
+                        src: './s3.<%= pkg.name %>-<%= pkg.version %>/*'
+                    }
+                ]
 
-        # Complexity
-        # ----------
-        complexity:
-                src:
-                    files:
-                        src: ["#{paths.src}/js/*.js"]
-                    options:
-                        errorsOnly: false # show only maintainability errors
-                        cyclomatic: 5
-                        halstead: 8
-                        maintainability: 100
-                        #jsLintXML: 'report.xml' # create XML JSLint-like report
-
-        # Concatenate
-        # --------
         concat:
             core:
                 src: core.concat traditional
@@ -213,34 +218,23 @@ module.exports = (grunt) ->
                 src: ["#{paths.src}/*.css"]
                 dest: "#{paths.build}/<%= pkg.name %>.css"
 
+        concurrent:
+            minify: ['cssmin', 'uglify']
+            lint: ['jshint', 'coffeelint']
 
-        # Uglify
-        # --------
-        uglify:
-            options:
-                mangle: true
-                compress: true
-                report: 'min'
-                preserveComments: 'some'
-            core:
-                src: ['<%= concat.core.dest %>']
-                dest: "#{paths.build}/<%= pkg.name %>.min.js"
-            jquery:
-                src: ['<%= concat.jquery.dest %>']
-                dest: "#{paths.build}/jquery.<%= pkg.name %>.min.js"
-            coreS3:
-                src: ['<%= concat.coreS3.dest %>']
-                dest: "#{paths.build}/s3.<%= pkg.name %>.min.js"
-            jqueryS3:
-                src: ['<%= concat.jqueryS3.dest %>']
-                dest: "#{paths.build}/s3.jquery.<%= pkg.name %>.min.js"
-            all:
-                src: ['<%= concat.all.dest %>']
-                dest: "#{paths.build}/all.<%= pkg.name %>.min.js"
+        connect:
+            root_server:
+                options:
+                    base: "."
+                    hostname: "0.0.0.0"
+                    port: 9000
+                    keepalive: true
+            test_server:
+                options:
+                    base: "test"
+                    hostname: "0.0.0.0"
+                    port: 9000
 
-        # Copy
-        # ----------
-        # @noworks
         copy:
             dist:
                 files: [
@@ -452,7 +446,7 @@ module.exports = (grunt) ->
                 expand: true
                 flatten: true
                 src: ["#{paths.build}/*"]
-                dest: "#{paths.test}/temp"
+                dest: "#{paths.test}/_temp"
             images:
                 files: [
                     expand: true
@@ -461,54 +455,6 @@ module.exports = (grunt) ->
                     dest: paths.build
                 ]
 
-
-        # Compress
-        # ----------
-        compress:
-            jquery:
-                 options:
-                     archive: "#{paths.dist}/jquery.<%= pkg.name %>-<%= pkg.version %>.zip"
-                 files: [
-                     {
-                         expand: true
-                         cwd: paths.dist
-                         src: './jquery.<%= pkg.name %>-<%= pkg.version %>/*'
-                     }
-                 ]
-             jqueryS3:
-                  options:
-                      archive: "#{paths.dist}/s3.jquery.<%= pkg.name %>-<%= pkg.version %>.zip"
-                  files: [
-                      {
-                          expand: true
-                          cwd: paths.dist
-                          src: './s3.jquery.<%= pkg.name %>-<%= pkg.version %>/*'
-                      }
-                  ]
-            core:
-                options:
-                    archive: "#{paths.dist}/<%= pkg.name %>-<%= pkg.version %>.zip"
-                files: [
-                    {
-                        expand: true
-                        cwd: paths.dist
-                        src: './<%= pkg.name %>-<%= pkg.version %>/*'
-                    }
-                ]
-            coreS3:
-                options:
-                    archive: "#{paths.dist}/s3.<%= pkg.name %>-<%= pkg.version %>.zip"
-                files: [
-                    {
-                        expand: true
-                        cwd: paths.dist
-                        src: './s3.<%= pkg.name %>-<%= pkg.version %>/*'
-                    }
-                ]
-
-        # cssmin
-        # ---------
-        # @works
         cssmin:
             options:
                 banner: '/*! <%= pkg.name %> <%= grunt.template.today("yyyy-mm-dd") %> */\n'
@@ -517,9 +463,7 @@ module.exports = (grunt) ->
                 src: '<%= concat.css.dest %>'
                 dest: "#{paths.build}/<%= pkg.name %>.min.css"
 
-        # Lint
-        # --------
-        # @nowork
+
         jshint:
             source: ["#{paths.src}/js/*.js"]
             tests: ["#{paths.test}unit/*.js"]
@@ -535,72 +479,58 @@ module.exports = (grunt) ->
                 expr: true
                 asi: true
 
-        # Run linter on coffeescript files
-        # ----------
-        # @works
-        coffeelint:
-            options:
-                indentation:
-                    level: 'ignore'
-                no_trailing_whitespace:
-                    level: 'ignore'
-                max_line_length:
-                    level: 'ignore'
-            grunt: './Gruntfile.coffee'
-
-
-        # Server to run tests against and host static files
-        # ----------
-        # @works
-        connect:
-            root_server:
-                options:
-                    base: "."
-                    hostname: "0.0.0.0"
-                    port: 9000
-                    keepalive: true
-            test_server:
-                options:
-                    base: "test"
-                    hostname: "0.0.0.0"
-                    port: 9001
-
-        # Watching for changes
-        # ----------
-        # @works
-        watch:
-            options:
-                interrupt: true
-                debounceDelay: 250
-            js:
-                files: ["#{paths.src}/js/*.js", "#{paths.src}/js/s3/*.js"]
-                tasks: [
-                    'build'
-                    'copy:test'
-                    'connect:test_server'
-                    'mocha'
-                ]
+        open:
             test:
-                files: ["#{paths.test}/unit/*.js", "#{paths.test}/unit/s3/*.js"]
-                tasks: [
-                    'jshint:tests'
-                    'test'
-                ]
-            grunt:
-                files: ['./Gruntfile.coffee']
-                tasks: [
-                    'coffeelint:grunt'
-                    'build'
-                    'test'
-                ]
-            images:
-                files: ["#{paths.src}/*.gif"]
-                tasks: [
-                    'copy:images'
-                ]
+                path: 'http://localhost:9000'
+                app: 'Google Chrome'
 
-        # Increment version with semver
-        # ----------
+        uglify:
+            options:
+                mangle: true
+                compress: true
+                report: 'min'
+                preserveComments: 'some'
+            core:
+                src: ['<%= concat.core.dest %>']
+                dest: "#{paths.build}/<%= pkg.name %>.min.js"
+            jquery:
+                src: ['<%= concat.jquery.dest %>']
+                dest: "#{paths.build}/jquery.<%= pkg.name %>.min.js"
+            coreS3:
+                src: ['<%= concat.coreS3.dest %>']
+                dest: "#{paths.build}/s3.<%= pkg.name %>.min.js"
+            jqueryS3:
+                src: ['<%= concat.jqueryS3.dest %>']
+                dest: "#{paths.build}/s3.jquery.<%= pkg.name %>.min.js"
+            all:
+                src: ['<%= concat.all.dest %>']
+                dest: "#{paths.build}/all.<%= pkg.name %>.min.js"
+
+        usebanner:
+            header:
+                src: ["#{paths.build}/*.{js,css}"]
+                options:
+                    position: 'top'
+                    banner: '''
+                            /*!
+                             * <%= pkg.title %>
+                             *
+                             * Copyright 2013, <%= pkg.author %> info@fineuploader.com
+                             *
+                             * Version: <%= pkg.version %>
+                             *
+                             * Homepage: http://fineuploader.com
+                             *
+                             * Repository: <%= pkg.repository.url %>
+                             *
+                             * Licensed under GNU GPL v3, see LICENSE
+                             */ \n\n'''
+            footer:
+                src: ["#{paths.build}/*.{js,css}"]
+                options:
+                    position: 'bottom'
+                    banner: '/*! <%= grunt.template.today("yyyy-mm-dd") %> */\n'
+
         version:
             options:
                 pkg: pkg,
@@ -622,99 +552,85 @@ module.exports = (grunt) ->
                     release: 'build'
                 src: versioned
 
-        # Test
+        watch:
+            options:
+                interrupt: true
+                debounceDelay: 250
+            js:
+                files: ["#{paths.src}/js/*.js", "#{paths.src}/js/s3/*.js"]
+                tasks: [
+                    'build'
+                    'copy:test'
+                    'test-unit'
+                ]
+            test:
+                files: ["#{paths.test}/unit/*.js", "#{paths.test}/unit/s3/*.js"]
+                tasks: [
+                    'jshint:tests'
+                    'test-unit'
+                ]
+            grunt:
+                files: ['./Gruntfile.coffee']
+                tasks: [
+                    'coffeelint:grunt'
+                    'build'
+                ]
+            images:
+                files: ["#{paths.src}/*.gif"]
+                tasks: [
+                    'copy:images'
+                ]
+
+        # Tests
         # ----------
         mocha:
-            all:
+            unit:
                 options:
-                    urls: ['http://localhost:9001/index.html']
+                    urls: ['http://localhost:9000/index.html']
                     log: true
                     mocha:
                         ignoreLeaks: false
                     reporter: 'Spec'
-                    run: false
+                    run: true 
 
-        # Saucelas + Mocha
-        # ---------
-        'saucelabs-mocha':
-            all:
+        'mocha-sauce':
+            options:
+                username: process.env.SAUCE_USERNAME || process.env.USER || ''
+                accessKey: process.env.SAUCE_ACCESS_KEY || ''
+                tunneled: true
+                timeout: 3000
+                concurrency: 3
+                identifier: process.env.TRAVIS_JOB_ID || Math.floor((new Date).getTime() / 1000 - 1230768000).toString()
+                tags: [ process.env.SAUCE_USERNAME+"@"+process.env.TRAVIS_BRANCH || process.env.SAUCE_USERNAME+"@local"]
+                build: process.env.TRAVIS_BUILD_ID || Math.floor((new Date).getTime() / 1000 - 1230768000).toString()
+            unit:
                 options:
-                    urls: ['http://localhost:9001/index.html']
-                    tunneled: true
-                    concurrency: 3
-                    identifier: process.env.TRAVIS_JOB_ID || Math.floor((new Date).getTime() / 1000 - 1230768000).toString()
-                    tags: [ process.env.SAUCE_USERNAME+"@"+process.env.TRAVIS_BRANCH || process.env.SAUCE_USERNAME+"@local"]
-                    testname: 'Unit Tests'
-                    detailedError: false
-                    build: process.env.TRAVIS_BUILD_ID || Math.floor((new Date).getTime() / 1000 - 1230768000).toString()
+                    url: 'http://localhost:9000/index.html'
+                    name: "UnitTests"
                     browsers: browsers.unit
-                    ## onTestComplete: (status, page, config, browser) ->
-                    ##     done = @async()
-                    ##     browser.eval 'JSON.stringify(window.mochaResults)', (err, res) ->
-                    ##         done(err) if err
-
-                    ##         res = JSON.parse res
-                    ##         res.browser = config
-
-                    ##         grunt.log.debug '[%s] Results: %j', config.prefix, res
-
-                    ##         data =
-                    ##             'custom-data':
-                    ##                 mocha: res.jsonReport
-                    ##             'passed': !res.failures
-
-                    ##         request
-                    ##             method: 'PUT'
-                    ##             uri: ["https://", process.env.SAUCE_USERNAME, ":", process.env.SAUCE_ACCESS_KEY, "@saucelabs.com/rest", "/v1/", process.env.SAUCE_USERNAME, "/jobs/", browser.sessionID].join('')
-                    ##             headers:
-                    ##                 'Content-Type': 'application/json'
-                    ##             body: JSON.stringify data
-                    ##         , (error, response, body) ->
-                    ##             done(error) if error
-                    ##             done res
 
     # Dependencies
     # ==========
     for name of pkg.devDependencies when name.substring(0, 6) is 'grunt-'
         grunt.loadNpmTasks name
 
+    grunt.loadTasks './lib/tasks'
+
     # Tasks
     # ==========
 
-    # Lint
+    # General Tasks
     # ----------
     grunt.registerTask 'lint', 'Lint, in order, the Gruntfile, sources, and tests.', [
-        'coffeelint:grunt',
-        'jshint:source',
-        'jshint:tests'
+        'concurrent:lint'
     ]
 
-    # Minify
-    # ----------
     grunt.registerTask 'minify', 'Minify the source javascript and css', [
-        'uglify'
-        'cssmin'
+        'concurrent:minify'
     ]
 
-    # Docs
+    # Testing Tasks 
     # ----------
-    #grunt.registerTask 'docs', 'IN THE WORKS: Generate documentation', []
-
-
-    # Watcher
-    # ----------
-    grunt.registerTask 'test-watch', 'Run headless unit-tests and re-run on file changes', [
-        'rebuild',
-        'copy:test'
-        'watch'
-    ]
-    # Coverage
-    # ----------
-    # @todo
-    grunt.registerTask 'coverage', 'IN THE WORKS: Generate a code coverage report', []
-
-    # Travis
-    # ---------
     grunt.registerTask 'check_for_pull_request_from_master', 'Fails if we are testing a pull request against master', ->
         if (process.env.TRAVIS_BRANCH == 'master' and process.env.TRAVIS_PULL_REQUEST != 'false')
             grunt.fail.fatal '''Woah there, buddy! Pull requests should be
@@ -723,84 +639,79 @@ module.exports = (grunt) ->
             https://github.com/Widen/fine-uploader/blob/master/CONTRIBUTING.md\n
             '''
 
-    # Travis' own test
-    # ----------
-    grunt.registerTask 'travis-sauce', 'Run tests on Saucelabs', [
-        'copy:test'
-        'connect:test_server'
-        'saucelabs-mocha'
-    ]
-
     grunt.registerTask 'travis', [
         'check_for_pull_request_from_master'
         'travis-sauce'
     ]
 
-    # Test
-    # ----------
-    grunt.registerTask 'test', 'Run headless unit tests', [
-        'rebuild'
-        'copy:test'
+    grunt.registerTask 'test-watch', 'Run headless unit-tests and re-run on file changes', [
+        'prepare-test'
         'connect:test_server'
-        'mocha'
+        'open:test'
+        'watch'
     ]
 
-    # Test on Saucelabs
-    # ----------
-    grunt.registerTask 'test-sauce', 'Run tests on Saucelabs', [
-        'rebuild'
-        'copy:test'
+    grunt.registerTask 'test-unit', 'Run headless unit tests', [
+        'prepare-test'
         'connect:test_server'
-        'saucelabs-mocha'
+        'mocha:unit'
     ]
 
-    # Local tests (indefinite)
-    # ----------
-    grunt.registerTask 'test-local', 'Run a local server indefinitely for testing', [
-        'copy:test'
+    grunt.registerTask 'test-unit-sauce', 'Run tests on SauceLabs', [
+        'prepare-test'
+        'connect:test_server'
+        'mocha-sauce:unit'
+    ]
+
+    grunt.registerTask 'test-unit-forever', 'Run a local server for indefinite unit testing', [
+        'prepare-test'
         'connect:root_server'
+        'open:test'
     ]
 
+    grunt.registerTask 'test-functional', 'ITW: Run functional tests', [
+        'prepare-test'
+        'connect:test_server'
+        'mocha:functional'
+    ]
 
-    # Build
+    grunt.registerTask 'test-functional-sauce', 'ITW: Run functional tests (SauceLabs)', [
+        'prepare-test'
+        'connect:test_server'
+        'mocha-sauce:functional'
+    ]
+
+    # Building Tasks
     # ----------
-    # @verify
-    grunt.registerTask 'build', 'build from latest source', [
+
+    grunt.registerTask 'prepare-test', 'Prepare code for testing', [
+        'rebuild'
+        'copy:test'
+    ]
+
+    grunt.registerTask 'prepare', 'Prepare the environment for development', [
+        'clean'
+        'bower'
+    ]
+
+    grunt.registerTask 'rebuild', "Rebuild the environment and source", [
+        'prepare',
+        'build'
+    ]
+
+    grunt.registerTask 'build', 'Build from latest source', [
         'concat'
         'minify'
         'usebanner'
         'copy:images'
     ]
 
-    # Prepare
-    # ----------
-    # @verify
-    grunt.registerTask 'prepare', 'Prepare the environment for FineUploader development', [
-        'clean'
-        'bower'
-    ]
-
-    # Rebuild
-    # ----------
-    grunt.registerTask 'rebuild', "Rebuild the environment and source", [
-        'prepare',
-        'build'
-    ]
-
-    # Dist
-    # ---------
-    # @todo
-    grunt.registerTask 'dist', 'build a zipped distribution-worthy version', [
+    grunt.registerTask 'release', 'Build a zipped distribution-worthy version', [
         'build'
         'copy:dist'
         'compress'
     ]
 
-    # Default
-    # ----------
     grunt.registerTask 'default', 'Default task: clean, bower, lint, build, & test', [
-        'clean'
-        #'lint'
-        'build'
-        'test'
+        'release'
     ]
