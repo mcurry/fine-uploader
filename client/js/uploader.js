@@ -117,15 +117,18 @@ qq.FineUploader = function(o, namespace) {
             }, 0);
         },
         showConfirm: function(message, okCallback, cancelCallback) {
-            setTimeout(function() {
-                var result = window.confirm(message);
-                if (result) {
-                    okCallback();
-                }
-                else if (cancelCallback) {
-                    cancelCallback();
-                }
-            }, 0);
+            var promise = new qq.Promise(),
+                result = window.confirm(message);
+
+            promise.then(okCallback, cancelCallback);
+
+            if (result !== false) {
+                promise.success(result);
+            } else {
+                promise.failure(result);
+            }
+
+            return promise;
         },
         showPrompt: function(message, defaultValue) {
             var promise = new qq.Promise(),
@@ -147,7 +150,7 @@ qq.FineUploader = function(o, namespace) {
     qq.extend(this._options, o, true);
 
     if (!qq.supportedFeatures.uploading || (this._options.cors.expected && !qq.supportedFeatures.uploadCors)) {
-        this._options.element.innerHTML = "<div>" + this._options.messages.unsupportedBrowser + "</div>"
+        this._options.element.innerHTML = "<div>" + this._options.messages.unsupportedBrowser + "</div>";
     }
     else {
         this._wrapCallbacks();
