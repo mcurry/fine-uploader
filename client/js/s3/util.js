@@ -265,7 +265,7 @@ qq.s3.util = qq.s3.util || (function() {
 
         // AWS replaces spaces in response query strings with pluses (+) instead of %20.
         encodeQueryStringParam: function(param) {
-            var percentEncoded = encodeURIComponent(param);
+            var percentEncoded = encodeURIComponent(param).replace(/[!'()]/g, escape).replace(/\*/g, "%2A");
 
             return percentEncoded.replace(/%20/g, "+");
         }
