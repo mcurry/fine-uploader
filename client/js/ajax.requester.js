@@ -94,7 +94,11 @@ qq.AjaxRequestor = function (o) {
                 xhrOrXdr = getCorsAjaxTransport();
             }
             else {
-                xhrOrXdr = new XMLHttpRequest();
+            	if (window.XMLHttpRequest) {
+   							xhrOrXdr = new XMLHttpRequest();
+  						} else {
+  							xhrOrXdr = new ActiveXObject("Microsoft.XMLHTTP");
+  						}
             }
 
             requestData[id].xhr = xhrOrXdr;
